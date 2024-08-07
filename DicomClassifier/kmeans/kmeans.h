@@ -11,457 +11,325 @@
 
 using namespace std;
 
+// Clase para representar un punto en el espacio de características
 class Point
 {
 private:
-    int pointId, clusterId;
-    int dimensions;
-    vector<double> values;
+    int pointId, clusterId; // ID del punto y ID del clúster al que pertenece
+    int dimensions;        // Número de dimensiones del punto
+    vector<double> values; // Valores de las dimensiones del punto
 
+    // Convierte una línea de texto en un vector de valores numéricos
     vector<double> lineToVec(string &line)
     {
-        vector<double> values;
-        string tmp = "";
+        vector<double> values; // Vector para almacenar los valores convertidos
+        string tmp = "";       // Cadena temporal para construir valores numéricos
 
         for (int i = 0; i < (int)line.length(); i++)
         {
-            if ((48 <= int(line[i]) && int(line[i])  <= 57) || line[i] == '.' || line[i] == '+' || line[i] == '-' || line[i] == 'e')
+            // Verifica si el carácter es un dígito, punto decimal, signo o 'e' para notación científica
+            if ((48 <= int(line[i]) && int(line[i]) <= 57) || line[i] == '.' || line[i] == '+' || line[i] == '-' || line[i] == 'e')
             {
-                tmp += line[i];
+                tmp += line[i]; // Construye el número en formato string
             }
             else if (tmp.length() > 0)
             {
-
-                values.push_back(stod(tmp));
-                tmp = "";
+                values.push_back(stod(tmp)); // Convierte el string a double y lo añade al vector
+                tmp = ""; // Resetea la cadena temporal
             }
         }
         if (tmp.length() > 0)
         {
-            values.push_back(stod(tmp));
-            tmp = "";
+            values.push_back(stod(tmp)); // Añade el último valor si existe
         }
 
         return values;
     }
 
 public:
-/**
- * @brief Construct a new Point object contruye un nuevo punto para calcular en cada iteracion
- * 
- * @param id identificador de nuevo punto.
- * @param line tamaño del vector para almacenar los puntos.
- */
+    // Constructor que inicializa un punto a partir de una línea de texto
     Point(int id, string line)
     {
         pointId = id;
         values = lineToVec(line);
         dimensions = values.size();
-        clusterId = 0; // Initially not assigned to any cluster
+        clusterId = 0; // Inicialmente no asignado a ningún clúster
     }
 
-/**
- * @brief Construct a new Point object 
- * 
- * @param id identificador del nuevo punto
- * @param dataPoints datos de los puntos almacenados en un vector
- */
-
-    Point(int id, vector<double> dataPoints) {
+    // Constructor que inicializa un punto a partir de un vector de valores
+    Point(int id, vector<double> dataPoints)
+    {
         pointId = id;
         values = dataPoints;
         dimensions = dataPoints.size();
         clusterId = 0;
     }
-/**
- * @brief Get the Dimensions object devuelve las dimensiones de la matriz
- * 
- * @return int regresa el numero de dimensiones
- */
 
-    int getDimensions() { return dimensions; }
+    int getDimensions() const { return dimensions; } // Obtiene el número de dimensiones
 
-/**
- * @brief Get the Cluster object regresa el numero de cluster 
- * 
- * @return int regresa el numero de clusters
- */
+    int getCluster() const { return clusterId; } // Obtiene el ID del clúster al que pertenece el punto
+    int getID() const { return pointId; } // Obtiene el ID del punto
 
-    int getCluster() { return clusterId; }
-/**
- * @brief devuelve el ID del punto calculado
- * 
- * @return int valor del id del punto
- */
+    void setCluster(int val) { clusterId = val; } // Establece el ID del clúster al que pertenece el punto
 
-    int getID() { return pointId; }
-/**
- * @brief Set the Cluster object envia el nuevo valor del cluster
- * 
- * @param val valor del clusterid a actualizar
- */
-
-    void setCluster(int val) { clusterId = val; }
-
-/**
- * @brief Get the Val object obtiene el valor del punto
- * 
- * @param pos la posicion del punto
- * @return double el valor del punto
- */
-
-    double getVal(int pos) { return values[pos]; }
+    double getVal(int pos) const { return values[pos]; } // Obtiene el valor en la posición dada
 };
 
+// Clase para representar un clúster
 class Cluster
 {
 private:
-    int clusterId;
-    vector<double> centroid;
-    vector<Point> points;
+    int clusterId;                // ID del clúster
+    vector<double> centroid;      // Centroide del clúster
+    vector<Point*> points;        // Punteros a los puntos que pertenecen al clúster
 
 public:
-/**
- * @brief Construct a new Cluster object
- * 
- * @param clusterId identificador del cluster
- * @param centroid identificador del centroide
- */
-    Cluster(int clusterId, Point centroid)
+    // Constructor que inicializa un clúster con un punto como centroide
+    Cluster(int clusterId, Point* centroid)
     {
         this->clusterId = clusterId;
-        for (int i = 0; i < centroid.getDimensions(); i++)
+        for (int i = 0; i < centroid->getDimensions(); i++)
         {
-            this->centroid.push_back(centroid.getVal(i));
+            this->centroid.push_back(centroid->getVal(i)); // Copia las coordenadas del centroide
         }
-        this->addPoint(centroid);
+        this->addPoint(centroid); // Añade el punto de centroide al clúster
     }
 
-    /**
-     * @brief Agrega un nuevo punto
-     * 
-     * @param p punto a agregar
-     */
-
-    void addPoint(Point p)
+    // Añade un punto al clúster
+    void addPoint(Point* p)
     {
-        p.setCluster(this->clusterId);
-        points.push_back(p);
+        p->setCluster(this->clusterId); // Establece el ID del clúster del punto
+        points.push_back(p); // Añade el puntero al vector de puntos
     }
-    /**
-     * @brief Elimina un punto
-     * 
-     * @param pointId  identificador del punto
-     * @return true condicion para eliminar o mantener el punto
-     * @return false condicion para eliminar o mantener el punto
-     */
+
+    // Elimina un punto del clúster por su ID
     bool removePoint(int pointId)
     {
         int size = points.size();
-
         for (int i = 0; i < size; i++)
         {
-            if (points[i].getID() == pointId)
+            if (points[i]->getID() == pointId)
             {
-                points.erase(points.begin() + i);
+                points.erase(points.begin() + i); // Elimina el punto del vector
                 return true;
             }
         }
-        return false;
+        return false; // No se encontró el punto
     }
 
-    /**
-     * @brief Remuev todos los puntos
-     * 
-     */
+    // Elimina todos los puntos del clúster
     void removeAllPoints() { points.clear(); }
 
-    /**
-     * @brief Get the Id object
-     * 
-     * @return int valor del identificador del cluster
-     */
+    int getId() const { return clusterId; } // Obtiene el ID del clúster
 
-    int getId() { return clusterId; }
+    Point* getPoint(int pos) const { return points[pos]; } // Obtiene el puntero al punto en la posición dada
+    int getSize() const { return points.size(); } // Obtiene el número de puntos en el clúster
 
-    /**
-     * @brief Get the Point object
-     * 
-     * @param pos valor de la posicion del punto
-     * @return Point regresa el valor del punto en la posicion enviada
-     */
+    double getCentroidByPos(int pos) const { return centroid[pos]; } // Obtiene el valor del centroide en la posición dada
 
-    Point getPoint(int pos) { return points[pos]; }
-    /**
-     * @brief Get the Size object
-     * 
-     * @return int numero de puntos del vector
-     */
+    void setCentroidByPos(int pos, double val) { this->centroid[pos] = val; } // Establece el valor del centroide en la posición dada
 
-    int getSize() { return points.size(); }
-    /**
-     * @brief Get the Centroid By Pos object
-     * 
-     * @param pos numero de la posicion del centroide
-     * @return double valor del centroide en base a la posicion
-     */
-
-    double getCentroidByPos(int pos) { return centroid[pos]; }
-
-    /**
-     * @brief Set the Centroid By Pos object
-     * 
-     * @param pos valor de la posicion del vector a enviar
-     * @param val valor del centroide a enviar
-     */
-
-    void setCentroidByPos(int pos, double val) { this->centroid[pos] = val; }
+    // Destructor
+    ~Cluster() {
+        // En este caso, no destruimos los punteros a `Point` aquí para evitar eliminar objetos compartidos
+    }
 };
 
+// Clase para gestionar el algoritmo de K-Means
 class KMeans
 {
 private:
-    int K, iters, dimensions, total_points;
-    vector<Cluster> clusters;
-    string output_dir;
+    int K, iters, dimensions, total_points; // Número de clústeres, iteraciones, dimensiones y puntos totales
+    vector<Cluster*> clusters; // Punteros a los clústeres
+    string output_dir; // Directorio de salida para los archivos
 
+    // Limpia todos los puntos de todos los clústeres
     void clearClusters()
     {
-        for (int i = 0; i < K; i++)
+        for (auto cluster : clusters)
         {
-            clusters[i].removeAllPoints();
+            cluster->removeAllPoints(); // Limpia los puntos de cada clúster
         }
     }
 
-    int getNearestClusterId(Point point)
+    // Obtiene el ID del clúster más cercano al punto dado
+    int getNearestClusterId(const Point &point)
     {
-        double sum = 0.0, min_dist;
-        int NearestClusterId;
-        if(dimensions==1) {
-            min_dist = abs(clusters[0].getCentroidByPos(0) - point.getVal(0));
-        }
-        else
+        double min_dist = numeric_limits<double>::max(); // Inicializa la distancia mínima a infinito
+        int NearestClusterId = -1;
+
+        for (auto cluster : clusters)
         {
-            for (int i = 0; i < dimensions; i++)
+            double sum = 0.0;
+            for (int j = 0; j < dimensions; j++)
             {
-                sum += pow(clusters[0].getCentroidByPos(i) - point.getVal(i), 2.0);
-                // sum += abs(clusters[0].getCentroidByPos(i) - point.getVal(i));
+                double diff = cluster->getCentroidByPos(j) - point.getVal(j); // Calcula la diferencia en cada dimensión
+                sum += diff * diff; // Suma de las distancias cuadradas
             }
-            min_dist = sqrt(sum);
-        }
-        NearestClusterId = clusters[0].getId();
+            double dist = sqrt(sum); // Distancia euclidiana
 
-        for (int i = 1; i < K; i++)
-        {
-            double dist;
-            sum = 0.0;
-
-            if(dimensions==1) {
-                dist = abs(clusters[i].getCentroidByPos(0) - point.getVal(0));
-            }
-            else {
-                for (int j = 0; j < dimensions; j++)
-                {
-                    sum += pow(clusters[i].getCentroidByPos(j) - point.getVal(j), 2.0);
-                    // sum += abs(clusters[i].getCentroidByPos(j) - point.getVal(j));
-                }
-
-                dist = sqrt(sum);
-                // dist = sum;
-            }
-            if (dist < min_dist)
+            if (dist < min_dist) // Si la distancia es menor que la mínima encontrada
             {
                 min_dist = dist;
-                NearestClusterId = clusters[i].getId();
+                NearestClusterId = cluster->getId(); // Actualiza el ID del clúster más cercano
             }
         }
-
-        return NearestClusterId;
+        return NearestClusterId; // Devuelve el ID del clúster más cercano
     }
 
 public:
-/**
- * @brief Construct a new KMeans object
- * 
- * @param K valor para k
- * @param iterations numero de iteraicones a ejecutar
- * @param output_dir directorio de salida del resultado
- */
-    KMeans(int K, int iterations, string output_dir)
+    // Constructor que inicializa el número de clústeres, iteraciones y directorio de salida
+    KMeans(int K, int iterations, const string &output_dir)
+        : K(K), iters(iterations), output_dir(output_dir)
     {
-        this->K = K;
-        this->iters = iterations;
-        this->output_dir = output_dir;
+        // No se necesita asignación dinámica aquí
     }
 
+    // Ejecuta el algoritmo de K-Means
     void run(vector<Point> &all_points)
-
     {
         total_points = all_points.size();
-        dimensions = all_points[0].getDimensions();
+        dimensions = all_points[0].getDimensions(); // Asume que todos los puntos tienen la misma dimensión
 
-        // Initializing Clusters
-        vector<int> used_pointIds;
+        vector<int> used_pointIds; // Vector para almacenar los IDs de los puntos ya usados
+        for (auto cluster : clusters) {
+            delete cluster; // Limpia los punteros a clústeres existentes
+        }
+        clusters.clear(); // Asegura que no queden clústeres sobrantes
 
+        // Inicializa los clústeres con puntos aleatorios
         for (int i = 1; i <= K; i++)
         {
             while (true)
             {
-                int index = rand() % total_points;
-
-                if (find(used_pointIds.begin(), used_pointIds.end(), index) ==
-                        used_pointIds.end())
+                int index = rand() % total_points; // Selecciona un índice aleatorio
+                if (find(used_pointIds.begin(), used_pointIds.end(), index) == used_pointIds.end())
                 {
-                    used_pointIds.push_back(index);
-                    all_points[index].setCluster(i);
-                    Cluster cluster(i, all_points[index]);
-                    clusters.push_back(cluster);
+                    used_pointIds.push_back(index); // Añade el índice a los usados
+                    all_points[index].setCluster(i); // Asigna el clúster al punto
+                    Cluster* cluster = new Cluster(i, &all_points[index]); // Crea un nuevo clúster
+                    clusters.push_back(cluster); // Añade el clúster al vector de clústeres
                     break;
                 }
             }
         }
-        //        cout << "Clusters initialized = " << clusters.size() << endl << endl;
-
-        cout << "Running K-Means Clustering.." << endl;
 
         int iter = 1;
-        while (true)
+        while (iter <= iters)
         {
-            cout << "Iter - " << iter << "/" << iters << endl;
+            cout << "Iteration " << iter << "/" << iters << endl;
             bool done = true;
 
-            // Add all points to their nearest cluster
-#pragma omp parallel for reduction(&&: done) num_threads(16)
+            // Sección paralela para actualizar las asignaciones de clústeres
+            //#pragma omp parallel for reduction(&& : done)
             for (int i = 0; i < total_points; i++)
             {
-                int currentClusterId = all_points[i].getCluster();
-                int nearestClusterId = getNearestClusterId(all_points[i]);
+                int currentClusterId = all_points[i].getCluster(); // Obtiene el clúster actual del punto
+                int nearestClusterId = getNearestClusterId(all_points[i]); // Encuentra el clúster más cercano
 
-                if (currentClusterId != nearestClusterId)
+                if (currentClusterId != nearestClusterId) // Si el clúster del punto cambió
                 {
-                    all_points[i].setCluster(nearestClusterId);
-                    done = false;
+                    all_points[i].setCluster(nearestClusterId); // Actualiza el clúster del punto
+                    done = false; // Marca el algoritmo como no convergido
                 }
             }
 
-            // clear all existing clusters
-            clearClusters();
+            clearClusters(); // Limpia los puntos de los clústeres
 
-            // reassign points to their new clusters
+            // Reasigna los puntos a los clústeres
             for (int i = 0; i < total_points; i++)
             {
-                // cluster index is ID-1
-                clusters[all_points[i].getCluster() - 1].addPoint(all_points[i]);
+                clusters[all_points[i].getCluster() - 1]->addPoint(&all_points[i]); // Añade el punto al clúster correspondiente
             }
 
-            // Recalculating the center of each cluster
-            for (int i = 0; i < K; i++)
+            // Actualiza los centroides de los clústeres
+            for (auto cluster : clusters)
             {
-                int ClusterSize = clusters[i].getSize();
-
+                int ClusterSize = cluster->getSize();
                 for (int j = 0; j < dimensions; j++)
                 {
                     double sum = 0.0;
                     if (ClusterSize > 0)
                     {
-#pragma omp parallel for reduction(+: sum) num_threads(16)
+                        //#pragma omp parallel for reduction(+: sum)
                         for (int p = 0; p < ClusterSize; p++)
                         {
-                            sum += clusters[i].getPoint(p).getVal(j);
+                            sum += cluster->getPoint(p)->getVal(j); // Suma los valores en la dimensión dada
                         }
-                        clusters[i].setCentroidByPos(j, sum / ClusterSize);
+                        cluster->setCentroidByPos(j, sum / ClusterSize); // Calcula el nuevo centroide
                     }
                 }
             }
 
-            if (done || iter >= iters)
+            if (done) // Si no hubo cambios en los clústeres
             {
-                cout << "Clustering completed in iteration : " << iter << endl
-                     << endl;
+                cout << "Converged in iteration " << iter << endl;
                 break;
             }
-            iter++;
+            iter++; // Incrementa el número de iteración
         }
-
-
     }
 
-    vector<Cluster> getClustersValues() {
+    // Obtiene los clústeres
+    vector<Cluster*> getClustersValues() const
+    {
         return clusters;
     }
-    /**
-     * @brief almacena los nuevos valores de los puntos en el vector
-     * 
-     * @param all_points un vector que almacena todos los puntos 
-     * @param prefix cadena de texto para almacenar junto con los puntos
-     */
 
-    void savePoints(vector<Point> &all_points ,string &prefix) {
-
-        // Write Points
-        ofstream pointsFile;
-        pointsFile.open(output_dir + "/" + prefix + to_string(K) + "-points.txt", ios::out);
-
-        for (int i = 0; i < total_points; i++)
+    // Guarda los puntos en un archivo
+    void savePoints(const vector<Point> &all_points, const string &prefix) const
+    {
+        ofstream pointsFile(output_dir + "/" + prefix + to_string(K) + "-points.txt");
+        if (pointsFile.is_open())
         {
-            pointsFile << all_points[i].getCluster() << endl;
+            for (const auto &point : all_points)
+            {
+                pointsFile << point.getCluster() << endl; // Guarda el ID del clúster de cada punto
+            }
+            pointsFile.close();
         }
-
-        pointsFile.close();
-
-        return;
     }
 
-    /**
-     * @brief Almacena todos los valores de los clusters calculados 
-     * 
-     * @param prefix extension de los cluster almacenados
-     */
-
-    void saveClusters(string &prefix) {
-        // Write cluster centers to file
-        ofstream outfile;
-
-        outfile.open(output_dir + "/" + prefix +to_string(K) + "-clusters.txt");
+    // Guarda los centroides de los clústeres en un archivo
+    void saveClusters(const string &prefix) const
+    {
+        ofstream outfile(output_dir + "/" + prefix + to_string(K) + "-clusters.txt");
         if (outfile.is_open())
         {
-            for (int i = 0; i < K; i++)
+            for (const auto &cluster : clusters)
             {
-//                cout << "Cluster " << clusters[i].getId() << " centroid : ";
                 for (int j = 0; j < dimensions; j++)
                 {
-//                    cout << clusters[i].getCentroidByPos(j) << " ";    // Output to console
-                    outfile << clusters[i].getCentroidByPos(j) << " "; // Output to file
+                    outfile << cluster->getCentroidByPos(j) << " "; // Guarda los valores del centroide
                 }
-//                cout << endl;
                 outfile << endl;
             }
             outfile.close();
         }
-        else
-        {
-            cout << "Error: Unable to write to clusters.txt";
-        }
-
-        return;
     }
-    /**
-     * @brief Get the Avg Clusters object
-     * 
-     * @return double obtiene el valor de los centroides y calcula el porcentaje de average
-     */
 
-    double getAvgClusters() {
-
+    // Obtiene el valor promedio de los centroides
+    double getAvgClusters() const
+    {
         double accum = 0;
-        for (int i = 0; i < K; i++) {
-            for (int j = 0; j < dimensions; j++) {
-                accum = accum + clusters[i].getCentroidByPos(j);
+        for (const auto &cluster : clusters)
+        {
+            for (int j = 0; j < dimensions; j++)
+            {
+                accum += cluster->getCentroidByPos(j); // Suma los valores de los centroides
             }
         }
-        return accum / (K*dimensions);
+        return accum / (K * dimensions); // Devuelve el promedio
+    }
+
+    // Destructor
+    ~KMeans()
+    {
+        // Limpia los punteros a clústeres para evitar fugas de memoria
+        for (auto cluster : clusters)
+        {
+            delete cluster;
+        }
     }
 };
-
-
 #endif // KMEANS_H
