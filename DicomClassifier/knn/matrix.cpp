@@ -1,29 +1,41 @@
-/*
- * matrix.cpp
- *
- *  Created on: 05/09/2013
- *      Author: gustavo
- */
-
 #include "matrix.h"
-#include "debug.h"
-#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <stdexcept>
+#include <new> // For std::bad_alloc
 
-matrix_base::matrix_base(size_t rows, size_t cols) {
-	    DEBUGMEM("matrix: allocating double: %lu * %lu \n",rows,cols);
-		data = new double[rows*cols] ;
-		this->rows = rows;
-		this->cols = cols;
-		DEBUGMEM("matrix: allocated double: %lu * %lu in %p\n",rows,cols,data);
+// Constructor that initializes the matrix with the given number of rows and columns
+matrix_base::matrix_base(size_t rows, size_t cols)
+    : rows(rows), cols(cols), data(nullptr) {
+    try {
+        data = new double[rows * cols](); // Value-initialization sets all values to 0
+        std::cout << "matrix: allocated double: " << rows << " * " << cols << " at " << static_cast<void*>(data) << std::endl;
+    } catch (const std::bad_alloc& e) {
+        std::cerr << "matrix: failed to allocate memory: " << e.what() << std::endl;
+        throw; // Rethrow exception after logging
+    }
 }
 
+// Destructor that frees the allocated memory
 matrix_base::~matrix_base() {
-	DEBUGMEM("matrix: deleting: %lu x %lu from %p\n",rows,cols,data);
-	delete [] data;
+    std::cout << "matrix: deleting: " << rows << " x " << cols << " at " << static_cast<void*>(data) << std::endl;
+    delete[] data;
 }
 
+// Clears the matrix by setting all values to 0
 void matrix_base::clear() {
-	for (size_t i = 0; i<rows;i++)
-		for(size_t j =0; j<cols; j++)
-			pos(i,j) = 0;
+    if (data) {
+        std::fill(data, data + (rows * cols), 0.0);
+    }
 }
+
+// Output the matrix to std::cout
+void outputMatrix(const matrix_base& matrix) {
+    for (size_t i = 0; i < matrix.rows; ++i) {
+        for (size_t j = 0; j < matrix.cols; ++j) {
+            std::cout << const_cast<matrix_base&>(matrix).pos(i, j) << " "; // Use const_cast here
+        }
+        std::cout << std::endl;
+    }
+}
+
